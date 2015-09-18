@@ -79,6 +79,7 @@ class AStar:
 	#print final path by traversing backwards from end using parent nodes
 	def printPath(self,node):
 		cost = 0
+		print "Path:"
 		while not(node.x == self.start.x and node.y == self.start.y):
 			print "(",node.x,",",node.y,")"
 			cost += calcDistance(node.x,node.y,node.parent.x,node.parent.y,node.typ)
@@ -120,7 +121,7 @@ class AStar:
 
 
 filename = sys.argv[1]
-h = sys.argv[2]
+h = int(sys.argv[2])
 world = getWorld(filename)
 aStar = AStar(world,h)
 aStar.aSearch()
