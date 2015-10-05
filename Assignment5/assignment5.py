@@ -107,7 +107,7 @@ class Value:
 						prevUtility = current.utility
 						
 						#calculate new utility
-						current.utility = self.discount * (current.reward + max(rvalue,lvalue,uvalue,dvalue))
+						current.utility = current.reward + self.discount * max(rvalue,lvalue,uvalue,dvalue)
 					
 						if(abs(current.utility - prevUtility) > delta):
 							delta = abs(current.utility - prevUtility)
