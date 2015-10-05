@@ -2,6 +2,9 @@
 	Assignment #5
 	Value Iteration
 
+###To run code:
+	python2 assignment5.py <worldFile> <epsilon>
+	
 ###Command line arguments: 
 	text file which contains the world you want to travel through
 	the value of epsilon you want to use
