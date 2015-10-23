@@ -2,7 +2,7 @@
 #CSCI 3202 - Intro to AI
 #Emma Montross
 
-import argparse
+import argparse, getopt, sys
 
 class Node():
 	def __init__(self,name,parents,prob):
@@ -14,14 +14,13 @@ class Node():
 	def set_prob(self,p):
 		self.prob = p
 		
-	#adds a conditional probability to the cprob dictionary
-	def add_cprob(self,name,p):
-		self.cprob[name] = p
-		
+	#adds a parent
 	def add_parent(self,parent):
 		self.parent.append(parent)
 	
-def calc_marginal(bayes):
+def calc_marginal(bayes,a):
+	node = bayes[a]
+	
 	return 0
 		
 def calc_joint(bayes):
@@ -32,6 +31,8 @@ def calc_conditional(bayes):
 
 def set_prior(bayes,node,prob):
 	bayes[node].set_prob(prob)
+	print "changed prior"
+	return 0
 	
 def generate_bayes():
 	#add all of the known nodes
@@ -41,7 +42,7 @@ def generate_bayes():
 	bayes = dict()
 	bayes["P"] = Node("pollution",None,0.9)
 	bayes["S"] = Node("smoker",None,0.3)
-	#note: faluse for pollution is high pollution
+	#note: false for pollution is high pollution
 	bayes["C"] = Node("cancer",["P","S"],{'ft':.05, 'ff':.02, 'tt':.03, 'tf':.001})
 	bayes["X"] = Node("Xray",["C"],{'t':.9, 'f':.2})
 	bayes["D"] = Node("dyspnoea",["C"],{'t':.65, 't':.3})
@@ -52,13 +53,13 @@ def main():
 	bayes = generate_bayes()
 	
 	# GETTING COMMAND LINE ARGUMENTS #
-    try:
-        opts, args = getopt.getopt(sys.argv[1:], "m:g:j:p:")
-    except getopt.GetoptError as err:
-        # print help information and exit:
-        print str(err) # will print something like "option -a not recognized"
-        sys.exit(2)
-    for o, a in opts:
+	try:
+		opts, args = getopt.getopt(sys.argv[1:], "m:g:j:p:")
+	except getopt.GetoptError as err:
+		# print help information and exit:
+		print str(err) # will print something like "option -a not recognized"
+		sys.exit(2)
+	for o, a in opts:
 		if o in ("-p"):
 			print "flag", o
 			print "args", a
@@ -69,7 +70,7 @@ def main():
 			print "flag", o
 			print "args", a
 			print type(a)
-			#calcMarginal(a)
+			calc_marginal(bayes,a)
 		elif o in ("-g"):
 			print "flag", o
 			print "args", a
