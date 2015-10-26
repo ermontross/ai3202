@@ -18,27 +18,48 @@ class Node():
 	def add_parent(self,parent):
 		self.parent.append(parent)
 	
+#calculates marginal probability
+#currently NOT COREECT
 def calc_marginal(bayes,a):
 	node = bayes[a]
+	if a == "S" or a == "P":
+		marg = node.prob
+	else:
+		marg = sum(node.prob.values())
 	
+	print "Marginal probability of",node.name,"is",marg
 	return 0
 		
-def calc_joint(bayes):
-	return 0
-		
-def calc_conditional(bayes):
+#calculates joint probability
+def calc_joint(bayes,args):
 	return 0
 
+#calculate conditional probability
+def calc_conditional(bayes,need,given):
+	return 0
+	
+#returns the correct node based on the argument
+def get_node(bayes,x):
+	if(x == 'X' or x == 'x' or x == '~x'):
+		return bayes["X"]
+	elif(x == 'D' or x == 'd' or x == '~d'):
+		return bayes["D"]
+	elif(x == 'C' or x == 'c' or x == '~c'):
+		return bayes["C"]
+	elif(x == 'S' or x == 's' or x == '~s'):
+		return bayes["S"]
+	elif(x == 'P' or x == 'p' or x == '~p'):
+		return bayes["P"]
+
+#resets prior of smoker or pollution
 def set_prior(bayes,node,prob):
 	bayes[node].set_prob(prob)
 	print "changed prior"
 	return 0
-	
+
+#make dicitonaries of nodes
+#add all known nodes and probabilities	
 def generate_bayes():
-	#add all of the known nodes
-	#probabilites
-	#conditionals
-	#connections
 	bayes = dict()
 	bayes["P"] = Node("pollution",None,0.9)
 	bayes["S"] = Node("smoker",None,0.3)
@@ -81,10 +102,18 @@ def main():
 			p = a.find("|")
 			print a[:p]
 			print a[p+1:]
-			#calcConditional(a[:p], a[p+1:])
+			calc_conditional(bayes, a[:p], a[p+1:])
 		elif o in ("-j"):
 			print "flag", o
-			print "args", a
+			alist = list(a)
+			i = 0
+			while i < len(alist):
+				if alist[i] == '~':
+					alist[i] = alist[i] + alist.pop(i+1)
+				i = i+1
+			print alist
+			calc_joint(bayes,alist)
+					
 		else:
 			assert False, "unhandled option"
 
