@@ -20,15 +20,26 @@ class Node():
 	
 #calculates marginal probability
 #currently NOT COREECT
-def calc_marginal(bayes,a):
+def calc_marginal(bayes,a,pr):
 	node = bayes[a]
-	if a == "S" or a == "P":
+	if a == "S":
 		marg = node.prob
-	else:
-		marg = sum(node.prob.values())
-	
-	print "Marginal probability of",node.name,"is",marg
-	return 0
+	elif a == 'P':
+		marg = 1 - node.prob
+		print "Marginal probability of pollution being low is",marg
+		pr = False
+	elif a == 'C':
+		pol = bayes['P'].prob
+		smoke = bayes['S'].prob
+		marg = node.prob['~ps']*(1-pol)*smoke + node.prob['~p~s']*(1-pol)*(1-smoke) \
+		+ node.prob['ps']*pol*smoke + node.prob['p~s']*pol*(1-smoke)
+	elif a == 'X' or a == 'D':
+		cancer = calc_marginal(bayes,'C',False)
+		marg = node.prob['c']*cancer + node.prob['~c']*(1-cancer)	
+		
+	if pr:
+		print "Marginal probability of",node.name,"being true is",marg
+	return marg
 		
 #calculates joint probability
 def calc_joint(bayes,args):
@@ -41,15 +52,15 @@ def calc_conditional(bayes,need,given):
 #returns the correct node based on the argument
 def get_node(bayes,x):
 	if(x == 'X' or x == 'x' or x == '~x'):
-		return bayes["X"]
+		return bayes['X']
 	elif(x == 'D' or x == 'd' or x == '~d'):
-		return bayes["D"]
+		return bayes['D']
 	elif(x == 'C' or x == 'c' or x == '~c'):
-		return bayes["C"]
+		return bayes['C']
 	elif(x == 'S' or x == 's' or x == '~s'):
-		return bayes["S"]
+		return bayes['S']
 	elif(x == 'P' or x == 'p' or x == '~p'):
-		return bayes["P"]
+		return bayes['P']
 
 #resets prior of smoker or pollution
 def set_prior(bayes,node,prob):
@@ -61,12 +72,12 @@ def set_prior(bayes,node,prob):
 #add all known nodes and probabilities	
 def generate_bayes():
 	bayes = dict()
-	bayes["P"] = Node("pollution",None,0.9)
-	bayes["S"] = Node("smoker",None,0.3)
+	bayes['P'] = Node("pollution",None,0.9)
+	bayes['S'] = Node("smoker",None,0.3)
 	#note: false for pollution is high pollution
-	bayes["C"] = Node("cancer",["P","S"],{'ft':.05, 'ff':.02, 'tt':.03, 'tf':.001})
-	bayes["X"] = Node("Xray",["C"],{'t':.9, 'f':.2})
-	bayes["D"] = Node("dyspnoea",["C"],{'t':.65, 't':.3})
+	bayes['C'] = Node("cancer",['P','S'],{'~ps':.05, '~p~s':.02, 'ps':.03, 'p~s':.001})
+	bayes['X'] = Node("Xray",['C'],{'c':.9, '~c':.2})
+	bayes['D'] = Node("dyspnoea",['C'],{'c':.65, '~c':.3})
 	return bayes
 	
 def main():
@@ -88,10 +99,9 @@ def main():
 			print float(a[1:])
 			set_prior(bayes, a[0], float(a[1:]))
 		elif o in ("-m"):
-			print "flag", o
-			print "args", a
-			print type(a)
-			calc_marginal(bayes,a)
+			#print "flag", o
+			#print "args", a
+			calc_marginal(bayes,a,True)
 		elif o in ("-g"):
 			print "flag", o
 			print "args", a
