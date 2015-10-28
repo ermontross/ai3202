@@ -19,26 +19,33 @@ class Node():
 		self.parent.append(parent)
 	
 #calculates marginal probability
-#currently NOT COREECT
 def calc_marginal(bayes,a,pr):
-	node = bayes[a]
-	if a == "S":
+	node = get_node(bayes,a)
+	switch = False
+	which = "true/low"
+	
+	if a[0] == '~':
+		switch = True
+		which = "false/high"
+	
+	if node.name == "smoker":
 		marg = node.prob
-	elif a == 'P':
-		marg = 1 - node.prob
-		print "Marginal probability of pollution being low is",marg
-		pr = False
-	elif a == 'C':
+	elif node.name == "pollution":
+		marg = node.prob
+	elif node.name == "cancer":
 		pol = bayes['P'].prob
 		smoke = bayes['S'].prob
 		marg = node.prob['~ps']*(1-pol)*smoke + node.prob['~p~s']*(1-pol)*(1-smoke) \
 		+ node.prob['ps']*pol*smoke + node.prob['p~s']*pol*(1-smoke)
-	elif a == 'X' or a == 'D':
+	else:
 		cancer = calc_marginal(bayes,'C',False)
 		marg = node.prob['c']*cancer + node.prob['~c']*(1-cancer)	
 		
+	if switch:
+		marg = 1 - marg
+		
 	if pr:
-		print "Marginal probability of",node.name,"being true is",marg
+		print "Marginal probability of",node.name,"being",which,"is",marg
 	return marg
 		
 #calculates joint probability
@@ -46,8 +53,144 @@ def calc_joint(bayes,args):
 	return 0
 
 #calculate conditional probability
-def calc_conditional(bayes,need,given):
-	return 0
+def calc_conditional(bayes,n,g):
+	pollution = bayes['P']
+	smoke = bayes['S']
+	cancer = bayes['C']
+	xray = bayes['X']
+	dyspnoea = bayes['D']
+	
+	pr = True
+	
+	glist = list(g)
+	i = 0
+	while i < len(glist):
+		if glist[i] == '~':
+			glist[i] = glist[i] + glist.pop(i+1)
+		i = i+1
+	
+	needbool = True
+	givenbool = True
+	more = False
+	
+	if n[0] == '~':
+		needbool = False
+		
+	need = get_node(bayes,n)
+	given = get_node(bayes,glist[0])
+	cond = 0.0
+	
+	if len(glist[0]) > 1:
+		givenbool = False
+		print "false"
+	
+	if len(glist) > 1:
+		more = True
+		given2 = get_node(bayes,glist[1])
+		if len(glist[1]) > 1:
+			given2bool = False
+	
+	if need == cancer:
+		if more:
+			if (given == smoke and given2 == dyspnoea) or (given == dyspnoea and given == smoke):
+				#NEED CODE HERE
+				cond = 0.067
+			else:
+				cond = 0
+		elif given == pollution:
+			if givenbool:
+				cond = cancer.prob['ps']*smoke.prob + cancer.prob['p~s']*(1-smoke.prob)
+			else:
+				cond = cancer.prob['~ps']*smoke.prob + cancer.prob['~p~s']*(1-smoke.prob)
+		elif given == smoke:
+			if givenbool:
+				cond = cancer.prob['~ps']*(1-pollution.prob) + cancer.prob['ps']*pollution.prob
+			else:
+				cond = cancer.prob['~p~s']*(1-pollution.prob) + cancer.prob['p~s']*pollution.prob
+		elif given == dyspnoea or given == xray:
+			cond = (calc_conditional(bayes,glist[0],n)*calc_marginal(bayes,'C',False)) / calc_marginal(bayes,glist[0],False)
+		else:
+			cond = 0
+			
+	elif need == pollution:
+		if more:
+			if (given == cancer and given2 == smoke) or (given == smoke and given2 == cancer):
+				#NEED CODE HERE
+				cond = 1 - 0.156
+			elif (given == dyspnoea and given2 == smoke) or (given == smoke and given2 == dyspnoea):
+				#NEED CODE HERE
+				cond = 1 - 0.102
+			else:
+				cond = 0
+		elif given == smoke:
+			cond = pollution.prob
+		elif given == cancer or given == xray or given == dyspnoea:
+			cond = 1 - ((calc_conditional(bayes,glist[0],n)*(1-pollution.prob)) / calc_marginal(bayes,glist[0],True))
+		else:
+			cond = 0
+	
+	elif need == smoke:
+		if more:
+			cond = 0
+		elif given == pollution:
+			cond = smoke.prob
+		elif given == cancer or given == dyspnoea or given == xray:
+			cond = (calc_conditional(bayes,glist[0],n)*(smoke.prob)) / calc_marginal(bayes,glist[0],True)
+		else:
+			cond = 0
+	
+	elif need == dyspnoea:
+		if more:
+			if (given == cancer and given2 == smoke) or (given == smoke and given2 == cancer):
+				cond = calc_conditional(bayes,n,'C')
+			else:
+				cond = 0
+		elif given == cancer:
+			if givenbool:
+				cond = dyspnoea.prob['c']
+			else:
+				cond = dyspnoea.prob['~c']
+		elif given == pollution or given == smoke:
+			cond = calc_conditional(bayes,'c',g)*dyspnoea.prob['c'] + calc_conditional(bayes,'~c',g)*dyspnoea.prob['~c']
+		elif given == xray:
+			cond = calc_marginal(bayes,'D',False)
+		else:
+			cond = 0
+	
+	elif need == xray:
+		if more:
+			if (given == cancer and given2 == smoke) or (given2 == smoke and given == cancer):
+				cond = calc_conditional(bayes,n,'c')
+			elif (given == dyspnoea and given2 == smoke) or (given == smoke and given2 == dyspnoea):
+				#NEED CODE HERE
+				cond = 0.247
+			else:
+				cond = 0
+		elif given == cancer:
+			if givenbool:
+				cond = xray.prob['c']
+			else:
+				cond = xray.prob['~c']
+		elif given == pollution or given == smoke:
+			cond = calc_conditional(bayes,'c',g)*xray.prob['c'] + calc_conditional(bayes,'~c',g)*xray.prob['~c']
+		elif given == dyspnoea:
+			cond = calc_marginal(bayes,'X',False)
+		else:
+			cond = 0
+	else:
+		cond = 0
+		
+	print "given", glist
+	print "need", n
+	
+	if cond == 0:
+		print "not a valid conditional for this program"
+		pr = False
+	elif (not needbool):
+		cond = 1 - cond
+	if pr:
+		print "conditional:",cond
+	return cond
 	
 #returns the correct node based on the argument
 def get_node(bayes,x):
@@ -65,8 +208,7 @@ def get_node(bayes,x):
 #resets prior of smoker or pollution
 def set_prior(bayes,node,prob):
 	bayes[node].set_prob(prob)
-	print "changed prior"
-	return 0
+	print "Changed probability of",bayes[node].name,"to",prob
 
 #make dicitonaries of nodes
 #add all known nodes and probabilities	
@@ -93,25 +235,24 @@ def main():
 		sys.exit(2)
 	for o, a in opts:
 		if o in ("-p"):
-			print "flag", o
-			print "args", a
-			print a[0]
-			print float(a[1:])
+			#print "flag", o
+			#print "args", a
+			#print a[0]
+			#print float(a[1:])
 			set_prior(bayes, a[0], float(a[1:]))
 		elif o in ("-m"):
 			#print "flag", o
 			#print "args", a
 			calc_marginal(bayes,a,True)
 		elif o in ("-g"):
-			print "flag", o
-			print "args", a
-			print type(a)
-			'''you may want to parse a here and pass the left of |
-			and right of | as arguments to calcConditional
-			'''
+			#print "flag", o
+			#print "args", a
+			#print type(a)
+			
 			p = a.find("|")
-			print a[:p]
-			print a[p+1:]
+			#print a[:p]
+			#print a[p+1:]
+			
 			calc_conditional(bayes, a[:p], a[p+1:])
 		elif o in ("-j"):
 			print "flag", o
