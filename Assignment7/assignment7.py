@@ -12,7 +12,7 @@ def read_file(filename):
 	while line != "":
 		numbers.append(float(line))
 		line = infile.readline()
-	print numbers
+	print "numbers:",numbers
 	return numbers
 
 #generate the bayesian network
@@ -30,25 +30,28 @@ class Node:
 		self.name = name
 		self.prob = prob
 
-class Samples:
-	def __init__(self,numbers,bayes,v,s):
+class Prior:
+	def __init__(self,num,bayes,s):
 		#list of numbers from the input file
-		self.numbers = numbers
+		self.numbers = []
+		self.fill_list(self.numbers,num)
 		#dictionary of nodes for bayesian network
 		self.bayes = bayes
 		#2D array of generated samples
 		self.samples = []
 		#number of samples
 		self.numS = s
-		#number of variables in the bayesian network
-		self.numV = v
+	
+	def fill_list(self,num,filler):
+		for item in filler:
+			num.append(item)
 	
 	'''this function generates a 2D array of samples
 		determines whether cloudy is true or false
 		based off of that, determines rain and sprinklers
 		based off of those values, determines wet grass'''
 	def generate_samples(self):		
-		for i in range(0,self.numS-1):
+		for i in range(0,self.numS):
 			#getting random numbers from list
 			cloudy = self.numbers.pop()
 			sprinkler = self.numbers.pop()
@@ -117,11 +120,11 @@ class Samples:
 					else:
 						temp.append(0)
 			self.samples.append(temp)			
-		print self.samples
+		print "samples:",self.samples
 		
 	def prior_c(self):
 		numC = 0.0
-		for i in range(0,self.numS-1):
+		for i in range(0,self.numS):
 			if self.samples[i][0] == 1:
 				numC += 1
 		return float(numC/self.numS)
@@ -129,7 +132,7 @@ class Samples:
 	def prior_cgivenr(self):
 		numR = 0.0
 		numC = 0.0
-		for i in range(0,self.numS-1):
+		for i in range(0,self.numS):
 			if self.samples[i][2] == 1:
 				numR += 1
 				if self.samples[i][0] == 1:
@@ -139,7 +142,7 @@ class Samples:
 	def prior_sgivenw(self):
 		numS = 0.0
 		numW = 0.0
-		for i in range(0,self.numS-1):
+		for i in range(0,self.numS):
 			if self.samples[i][3] == 1:
 				numW += 1
 				if self.samples[i][1] == 1:
@@ -149,25 +152,65 @@ class Samples:
 	def prior_sgivencw(self):
 		numCW = 0.0
 		numS = 0.0
-		for i in range(0,self.numS-1):
+		for i in range(0,self.numS):
 			if self.samples[i][0] == 1 and self.samples[i][3] == 1:
 				numCW += 1
 				if self.samples[i][1] == 1:
 					numS += 1
 		return numS/numCW
 			
-				
+class Rejection:
+	def __init__(self,num,bayes):
+		#list of numbers from the input file
+		self.numbers = []
+		self.fill_list(self.numbers,num)
+		self.numbers1 = []
+		self.fill_list(self.numbers1,num)
+		self.numbers2 = []
+		self.fill_list(self.numbers2,num)
+		self.numbers3 = []
+		self.fill_list(self.numbers3,num)
+		#dictionary of nodes for bayesian network
+		self.bayes = bayes
+		#2D array of generated samples
+		self.samples = []
+	
+	def fill_list(self,num,filler):
+		for item in filler:
+			num.append(item)
+	
+	def rej_c(self):
+		samples = []
+		numC = 0
+		while(self.numbers):
+			cloudy = self.numbers.pop()
+			if cloudy < self.bayes['C'].prob:
+				samples.append(1)
+				numC += 1
+			else:
+				samples.append(0)
+		return numC/len(samples)
+		
+	'''def rej_cgivenr(self):
+		
+	def rej_sgivenw(self):
+		
+	def rej_sgivencw(self):	'''
 
 def main():
+	#command-line arguments
 	parser = argparse.ArgumentParser()
 	parser.add_argument("filename", help = "name of the text file that defines the world")
 	args = parser.parse_args()
 	
+	#getting numbers from input file
 	numbers = read_file(args.filename)
+	#generating bayesian network
 	bayes = generate_bayes()
 	
 	#four variables, 25 samples (4 random numbers per sample, 100 random numbers, 25 samples)
-	s = Samples(numbers,bayes,4,25)
+	#setting up prior samples
+	s = Prior(numbers,bayes,25)
 	s.generate_samples()
 	
 	#prior calculations
@@ -175,11 +218,18 @@ def main():
 	priorcr = s.prior_cgivenr()
 	priorsw = s.prior_sgivenw()
 	priorscw = s.prior_sgivencw()
-	print "PRIOR"
+	print "PRIOR PROBABILITIES"
 	print "P(c):",priorc
 	print "P(c|r):",priorcr
 	print "P(s|w):",priorsw
 	print "P(s|c,w):",priorscw
+	
+	#rejection sampling
+	r = Rejection(numbers,bayes)
+	rejc = r.rej_c()
+	
+	print "REJECTION PROBABILITIES"
+	print "P(c):",rejc
 	
 
 if __name__ == "__main__":
