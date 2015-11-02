@@ -119,8 +119,43 @@ class Samples:
 			self.samples.append(temp)			
 		print self.samples
 		
-	def prior_c(self,rain):
-		#rain is true or false
+	def prior_c(self):
+		numC = 0.0
+		for i in range(0,self.numS-1):
+			if self.samples[i][0] == 1:
+				numC += 1
+		return float(numC/self.numS)
+		
+	def prior_cgivenr(self):
+		numR = 0.0
+		numC = 0.0
+		for i in range(0,self.numS-1):
+			if self.samples[i][2] == 1:
+				numR += 1
+				if self.samples[i][0] == 1:
+					numC += 1
+		return numC/numR
+		
+	def prior_sgivenw(self):
+		numS = 0.0
+		numW = 0.0
+		for i in range(0,self.numS-1):
+			if self.samples[i][3] == 1:
+				numW += 1
+				if self.samples[i][1] == 1:
+					numS += 1
+		return numS/numW
+		
+	def prior_sgivencw(self):
+		numCW = 0.0
+		numS = 0.0
+		for i in range(0,self.numS-1):
+			if self.samples[i][0] == 1 and self.samples[i][3] == 1:
+				numCW += 1
+				if self.samples[i][1] == 1:
+					numS += 1
+		return numS/numCW
+			
 				
 
 def main():
@@ -134,6 +169,17 @@ def main():
 	#four variables, 25 samples (4 random numbers per sample, 100 random numbers, 25 samples)
 	s = Samples(numbers,bayes,4,25)
 	s.generate_samples()
+	
+	#prior calculations
+	priorc = s.prior_c()
+	priorcr = s.prior_cgivenr()
+	priorsw = s.prior_sgivenw()
+	priorscw = s.prior_sgivencw()
+	print "PRIOR"
+	print "P(c):",priorc
+	print "P(c|r):",priorcr
+	print "P(s|w):",priorsw
+	print "P(s|c,w):",priorscw
 	
 
 if __name__ == "__main__":
