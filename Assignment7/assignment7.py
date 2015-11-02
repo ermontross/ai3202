@@ -12,7 +12,6 @@ def read_file(filename):
 	while line != "":
 		numbers.append(float(line))
 		line = infile.readline()
-	print "numbers:",numbers
 	return numbers
 
 #generate the bayesian network
@@ -120,7 +119,6 @@ class Prior:
 					else:
 						temp.append(0)
 			self.samples.append(temp)			
-		print "samples:",self.samples
 		
 	def prior_c(self):
 		numC = 0.0
@@ -168,34 +166,77 @@ class Rejection:
 		self.fill_list(self.numbers1,num)
 		self.numbers2 = []
 		self.fill_list(self.numbers2,num)
-		self.numbers3 = []
-		self.fill_list(self.numbers3,num)
 		#dictionary of nodes for bayesian network
 		self.bayes = bayes
 		#2D array of generated samples
-		self.samples = []
 	
 	def fill_list(self,num,filler):
 		for item in filler:
 			num.append(item)
 	
 	def rej_c(self):
-		samples = []
-		numC = 0
+		samples = 0.0
+		numC = 0.0
 		while(self.numbers):
+			samples += 1
 			cloudy = self.numbers.pop()
 			if cloudy < self.bayes['C'].prob:
-				samples.append(1)
 				numC += 1
+		return numC/samples
+		
+	def rej_cgivenr(self):
+		numC = 0.0
+		numR = 0.0
+		while(self.numbers1):
+			cloudy = self.numbers1.pop()
+			rain = self.numbers1.pop()
+			if cloudy < self.bayes['C'].prob:
+				if rain < self.bayes['R'].prob['c']:
+					numR += 1
+					numC += 1
 			else:
-				samples.append(0)
-		return numC/len(samples)
+				if rain < self.bayes['R'].prob['~c']:
+					numR += 1
+		return numC/numR			
 		
-	'''def rej_cgivenr(self):
-		
-	def rej_sgivenw(self):
-		
-	def rej_sgivencw(self):	'''
+	def rej_sgivencw(self):
+		numCW = 0.0
+		numS = 0.0
+		while(len(self.numbers2) >= 4):
+			cloudy = self.numbers2.pop()
+			if cloudy < self.bayes['C'].prob:
+				sprinkler = self.numbers2.pop()
+				rain = self.numbers2.pop()
+				wetgrass = self.numbers2.pop()
+				#sprinkler 
+				if sprinkler < self.bayes['S'].prob['c']:
+					sprinkler = True
+				else:
+					sprinkler = False
+				#rain
+				if rain < self.bayes['R'].prob['c']:
+					rain = True
+				else:
+					rain = False
+
+				
+				if sprinkler:
+					if rain:
+						if wetgrass < self.bayes['W'].prob['sr']:
+							numCW += 1
+							numS += 1
+					else:
+						if wetgrass < self.bayes['W'].prob['s~r']:
+							numCW += 1
+							numS += 1
+				else:
+					if rain:
+						if wetgrass < self.bayes['W'].prob['~sr']:
+							numCW += 1
+					else:
+						if wetgrass < self.bayes['W'].prob['~s~r']:
+							numCW += 1
+		return numS/numCW	
 
 def main():
 	#command-line arguments
@@ -218,19 +259,26 @@ def main():
 	priorcr = s.prior_cgivenr()
 	priorsw = s.prior_sgivenw()
 	priorscw = s.prior_sgivencw()
+	print ""
 	print "PRIOR PROBABILITIES"
 	print "P(c):",priorc
 	print "P(c|r):",priorcr
 	print "P(s|w):",priorsw
 	print "P(s|c,w):",priorscw
+	print ""
 	
 	#rejection sampling
 	r = Rejection(numbers,bayes)
 	rejc = r.rej_c()
+	rejcr = r.rej_cgivenr()
+	rejscw = r.rej_sgivencw()
 	
 	print "REJECTION PROBABILITIES"
 	print "P(c):",rejc
-	
+	print "P(c|r):",rejcr
+	print "P(s|w):",priorsw #prior and rejection will be the same for s given w
+	print "P(s|c,w):",rejscw
+	print ""
 
 if __name__ == "__main__":
 	main()
